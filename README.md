@@ -1,36 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Homelab Homepage (Next.js)
 
-## Getting Started
+Versão em [Next.js](https://nextjs.org/) do [homelab-homepage](https://github.com/davirezendemota/homelab-homepage) original em Python.
 
-First, run the development server:
+Mesma UI e APIs (`/api/status`, `/api/prefs`, logs, métricas, ações em containers/stacks), com backend em TypeScript (Docker via socket Unix, preferências em SQLite).
 
-```bash
+## Desenvolvimento local
+
+Requisitos: Node 22+, acesso ao socket Docker.
+
+```sh
+cd homelab
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Abra `http://localhost:3000`. Ajuste `group_add` no `compose.yaml` conforme o GID do grupo `docker` no host (`getent group docker`).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Docker Compose
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Produção:
 
-## Learn More
+```sh
+docker compose up -d --build
+```
 
-To learn more about Next.js, take a look at the following resources:
+Porta publicada: **80 → 3000** (container).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Desenvolvimento (hot reload, código montado do host):
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```sh
+docker compose -f compose.dev.yaml up -d --build
+```
 
-## Deploy on Vercel
+Acesse `http://localhost:3030` (ou a porta **3030** no host — a **3000** já estava ocupada).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Se você abrir pelo hostname da LAN (`http://homelab01:3030`, etc.), o Next em modo dev só entrega o JavaScript se esse host estiver em `allowedDevOrigins` (já incluímos `homelab` e `homelab01`; ajuste `ALLOWED_DEV_ORIGINS` no `compose.dev.yaml` se usar outro nome).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+| Variável | Padrão | Descrição |
+|----------|--------|-----------|
+| `LINK_HOST` | *(header da requisição)* | Hostname nos links das portas (`http://HOST:porta`). Use `homelab` se você abre o painel por `127.0.0.1`/`localhost`. |
+| `DOCKER_SOCKET` | `/var/run/docker.sock` | Socket da API Docker |
+| `HOST_ROOT` | `/host` | Raiz do host montada (métricas de disco/temp) |
+| `DB_PATH` | `/app/data/homepage.db` | SQLite de preferências |
+
+## Estrutura
+
+- `src/app/api/*` — rotas compatíveis com a versão Python
+- `src/lib/*` — Docker, métricas, cache, prefs
+- `src/lib/dashboard-client.ts` — UI extraída do `app.py` original
+- `src/components/Dashboard.tsx` — hidratação da UI no cliente
+
+## Licença
+
+MIT
