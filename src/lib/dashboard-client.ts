@@ -1,7 +1,17 @@
 // @ts-nocheck
 
-export function initDashboard(DATA) {
-    const APP_BUILD = DATA.loaded_build;
+let dashboardControllerCleanup = null;
+
+/** @param {import('./dashboard-bridge').DashboardBridge | undefined} bridge */
+export function initDashboard(DATA, bridge) {
+    if (dashboardControllerCleanup) {
+      dashboardControllerCleanup();
+      dashboardControllerCleanup = null;
+    }
+
+    const reactMode = Boolean(bridge?.onDataUpdate);
+    const reactPolling = Boolean(bridge?.reactPolling);
+    let APP_BUILD = DATA.loaded_build;
 
     const state = { query: "", sortKey: null, sortDir: 1, showHidden: false };
     const REFRESH_MS = 5000;
@@ -1057,9 +1067,34 @@ export function initDashboard(DATA) {
       }
     }
 
+    function syncBridgeSnapshot() {
+      if (!bridge) return;
+      bridge.getSnapshot = () => ({
+        favorites: [...favorites],
+        hiddenContainers: [...hiddenContainers],
+        hiddenStacks: [...hiddenStacks],
+        collapsedStacks: [...collapsedStacks],
+        settings: { ...settings },
+        view: {
+          query: state.query,
+          sortKey: state.sortKey,
+          sortDir: state.sortDir,
+          showHidden: state.showHidden,
+        },
+      });
+    }
+
     function render() {
       renderSort();
-      renderStacks();
+      const rows = filteredRows();
+      const lists = buildLists(rows);
+      renderHiddenToggle(lists.hiddenCount);
+      if (reactMode) {
+        syncBridgeSnapshot();
+        bridge.onUiBump?.();
+      } else {
+        renderStacks();
+      }
     }
 
     function toggleSort(key) {
@@ -1081,13 +1116,16 @@ export function initDashboard(DATA) {
         if (!res.ok) throw new Error("HTTP " + res.status);
         DATA = await res.json();
         if (DATA.build && DATA.build !== APP_BUILD) {
-          location.reload();
-          return;
+          APP_BUILD = DATA.build;
         }
         setClock();
-        renderMeters();
-        recordUsageSamples();
-        render();
+        if (reactMode) {
+          bridge.onDataUpdate?.(DATA);
+        } else {
+          renderMeters();
+          recordUsageSamples();
+          render();
+        }
       } catch (e) {
         const err = document.getElementById("error");
         err.hidden = false;
@@ -1473,7 +1511,7 @@ export function initDashboard(DATA) {
 
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) return;
-      refresh();
+      if (!reactPolling) refresh();
       if (meterDetailKind === "cpu" && !document.getElementById("meter-modal").hidden) {
         loadMeterDetail("cpu");
       }
@@ -1481,25 +1519,40 @@ export function initDashboard(DATA) {
 
     let refreshTimer = null;
 
+    syncBridgeSnapshot();
+
     loadPrefs().then(() => {
       applySettings();
       setClock();
-      renderMeters();
-      recordUsageSamples();
-      render();
-      refreshTimer = setInterval(refresh, REFRESH_MS);
+      if (reactMode) {
+        syncBridgeSnapshot();
+        bridge.onUiBump?.();
+      } else {
+        renderMeters();
+        recordUsageSamples();
+        render();
+      }
+      if (!reactPolling) {
+        refreshTimer = setInterval(refresh, REFRESH_MS);
+      }
     }).catch((e) => {
       const err = document.getElementById("error");
       err.hidden = false;
       err.textContent = "Falha ao carregar preferências: " + (e && e.message ? e.message : e);
     });
 
-    return () => {
+    function wrappedCleanup() {
       if (refreshTimer) clearInterval(refreshTimer);
       stopMeterDetailRefresh();
       if (logsAbort) {
         logsAbort.abort();
         logsAbort = null;
       }
-    };
+      if (dashboardControllerCleanup === wrappedCleanup) {
+        dashboardControllerCleanup = null;
+      }
+    }
+
+    dashboardControllerCleanup = wrappedCleanup;
+    return wrappedCleanup;
 }
