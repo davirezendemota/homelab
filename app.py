@@ -638,7 +638,7 @@ def _meter_detail_cpu_from_stats(pairs: list[tuple[dict, dict]]) -> dict:
 
 def _cpu_pct_by_name(pairs: list[tuple[dict, dict]]) -> dict[str, float]:
     return {
-        _container_name(container): round(_container_cpu_pct(stats), 1)
+        _container_name(container): _container_cpu_pct(stats)
         for container, stats in pairs
     }
 
@@ -1925,7 +1925,7 @@ def render_page(req_host: str) -> str:
     }}
     .row {{
       display: grid;
-      grid-template-columns: minmax(0, 1.5fr) 120px minmax(0, 0.9fr) 110px 150px minmax(0, 0.7fr) 72px;
+      grid-template-columns: minmax(0, 1.5fr) 140px minmax(0, 0.9fr) 110px 150px minmax(0, 0.7fr) 72px;
       align-items: center;
       gap: 12px;
       padding: 14px 20px;
@@ -1967,10 +1967,26 @@ def render_page(req_host: str) -> str:
       text-overflow: ellipsis;
     }}
     .cpu-cell {{
+      display: flex;
+      align-items: center;
+      gap: 8px;
       min-width: 0;
       padding: 0 12px;
     }}
+    .cpu-pct {{
+      flex-shrink: 0;
+      min-width: 3.5em;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 600;
+      color: #8b94a3;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }}
     .cpu-bar {{
+      flex: 1;
+      min-width: 0;
       height: 6px;
       background: #1a2030;
       border-radius: 999px;
@@ -2581,7 +2597,7 @@ def render_page(req_host: str) -> str:
       border-bottom: none;
     }}
     body.compact-view .row {{
-      grid-template-columns: minmax(0, 1.4fr) 96px minmax(0, 0.85fr) 110px 150px minmax(0, 0.65fr) 60px;
+      grid-template-columns: minmax(0, 1.4fr) 112px minmax(0, 0.85fr) 110px 150px minmax(0, 0.65fr) 60px;
     }}
     body.compact-view .status-dot {{
       width: 7px;
@@ -2598,7 +2614,12 @@ def render_page(req_host: str) -> str:
       height: 5px;
     }}
     body.compact-view .cpu-cell {{
+      gap: 6px;
       padding: 0 10px;
+    }}
+    body.compact-view .cpu-pct {{
+      min-width: 3em;
+      font-size: 11px;
     }}
     body.compact-view .name-action-btn {{
       width: 22px;
@@ -2642,23 +2663,92 @@ def render_page(req_host: str) -> str:
     @media (max-width: 960px) {{
       .page {{ padding: 28px 20px 48px; }}
       .meters {{ grid-template-columns: repeat(2, 1fr); }}
-      .row {{
-        grid-template-columns: minmax(0, 1fr) auto auto;
-        gap: 10px;
+      .toolbar {{
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        margin-bottom: 32px;
       }}
-      .row-name {{ grid-column: 1; }}
-      .container-actions {{ grid-column: 2; }}
-      .row-actions {{ grid-column: 3; grid-row: 1; }}
-      .image-text,
-      .status-cell,
-      .ports {{ grid-column: 1 / -1; }}
+      .search-wrap {{
+        min-width: 0;
+        max-width: none;
+      }}
+      .row {{
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px 10px;
+        padding: 12px 14px;
+      }}
+      .row-name {{
+        order: 1;
+        flex: 1 1 auto;
+        min-width: 0;
+      }}
+      .container-actions {{
+        order: 2;
+        flex: 0 0 auto;
+        margin-left: auto;
+      }}
+      .row-actions {{
+        order: 3;
+        flex: 0 0 auto;
+      }}
+      .cpu-cell {{
+        order: 4;
+        flex: 1 1 100%;
+        width: 100%;
+        padding: 0;
+      }}
+      .image-text {{
+        order: 5;
+        flex: 1 1 auto;
+        min-width: 0;
+        width: auto;
+      }}
+      .status-cell {{
+        order: 6;
+        flex: 0 0 auto;
+        justify-content: flex-start;
+      }}
+      .ports {{
+        order: 7;
+        flex: 0 0 auto;
+        flex-wrap: nowrap;
+      }}
+      .name-text {{
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }}
+      .status-pill {{
+        font-size: 11px;
+        padding: 2px 8px;
+      }}
+      .port-link {{
+        font-size: 11px;
+        padding: 2px 7px;
+      }}
       body.compact-view .row {{
         gap: 6px;
+        padding: 8px 12px;
       }}
     }}
     @media (max-width: 560px) {{
       .meters {{ grid-template-columns: 1fr; }}
       h1 {{ font-size: 24px; }}
+      .page {{ padding: 20px 14px 40px; }}
+      .row {{ gap: 6px 8px; }}
+      .name-text {{
+        font-size: 13px;
+      }}
+      .status-pill {{
+        font-size: 10px;
+        padding: 2px 6px;
+      }}
+      .port-link {{
+        font-size: 10px;
+        padding: 2px 5px;
+      }}
       .modal {{ height: min(88vh, 760px); }}
       #meter-modal {{ gap: 8px; padding: 16px 8px; }}
       .modal-nav-btn {{ width: 36px; height: 36px; }}
@@ -3155,16 +3245,30 @@ def render_page(req_host: str) -> str:
       return "#f85149";
     }}
 
+    function formatPct(value) {{
+      const n = Number(value);
+      if (!Number.isFinite(n) || n <= 0) return "0%";
+      for (const decimals of [1, 2, 3, 4]) {{
+        const factor = 10 ** decimals;
+        if (Math.round(n * factor) / factor > 0) {{
+          return n.toFixed(decimals) + "%";
+        }}
+      }}
+      return n.toFixed(4) + "%";
+    }}
+
     function renderCpuBar(c) {{
       const running = isContainerRunning(c.status);
       const pct = running ? (c.cpuPct ?? 0) : null;
       const color = cpuBarColor(pct, running);
       const width = running && pct != null ? Math.min(100, Math.max(0, pct)) : 0;
+      const label = running && pct != null ? formatPct(pct) : "—";
       const title = running
-        ? `CPU ${{Number(pct ?? 0).toFixed(1)}}%`
+        ? `CPU ${{formatPct(pct ?? 0)}}`
         : "Container parado";
       return `
         <div class="cpu-cell" title="${{esc(title)}}">
+          <span class="cpu-pct" style="color:${{esc(color)}};">${{esc(label)}}</span>
           <div class="cpu-bar">
             <span style="width:${{esc(String(width))}}%;background:${{esc(color)}};"></span>
           </div>
@@ -3201,7 +3305,7 @@ def render_page(req_host: str) -> str:
     }}
 
     function isFlatView() {{
-      return Boolean(state.query.trim() || state.sortKey);
+      return Boolean(state.sortKey);
     }}
 
     function sortRows(rows) {{
