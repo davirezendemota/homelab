@@ -9,7 +9,7 @@ Mesma UI e APIs (`/api/status`, `/api/prefs`, logs, métricas, ações em contai
 Requisitos: Node 22+, acesso ao socket Docker.
 
 ```sh
-cd homelab
+cd homelab-app
 npm install
 npm run dev
 ```

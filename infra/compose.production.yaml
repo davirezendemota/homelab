@@ -1,12 +1,12 @@
-name: homelab
+name: homelab-app
 
 services:
-  homepage:
-    image: homelab-homepage
+  app:
+    image: homelab-app
     build:
       context: ..
       dockerfile: Dockerfile
-    container_name: homelab
+    container_name: homelab-app
     restart: unless-stopped
     ports:
       - "80:3000"
