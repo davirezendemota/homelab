@@ -42,3 +42,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+# Dev Workspace bridge (secrets local — install-kit)
+.dev-workspace/
+# Dev Workspace MCP consumer (token scoped — install-kit)
+.cursor/mcp.json
