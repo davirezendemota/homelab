@@ -12,7 +12,11 @@ export type DashboardPrefsSnapshot = {
   hiddenContainers: string[];
   hiddenStacks: string[];
   collapsedStacks: string[];
-  settings: { compactView: boolean; truncateNames: boolean };
+  settings: {
+    compactView: boolean;
+    truncateNames: boolean;
+    verticalMeters: boolean;
+  };
   view: DashboardViewState;
 };
 

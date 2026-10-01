@@ -4,7 +4,6 @@ import { memo } from "react";
 import {
   dashboardHeaderHtml,
   dashboardOverlaysHtml,
-  dashboardToolbarHtml,
 } from "@/lib/dashboard-body.splits";
 
 function HtmlBlock({ html }: { html: string }) {
@@ -15,10 +14,6 @@ function HtmlBlock({ html }: { html: string }) {
 
 export const DashboardHeaderBlock = memo(function DashboardHeaderBlock() {
   return <HtmlBlock html={dashboardHeaderHtml} />;
-});
-
-export const DashboardToolbarBlock = memo(function DashboardToolbarBlock() {
-  return <HtmlBlock html={dashboardToolbarHtml} />;
 });
 
 export const DashboardOverlaysBlock = memo(function DashboardOverlaysBlock() {

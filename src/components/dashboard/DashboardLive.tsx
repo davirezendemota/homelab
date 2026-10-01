@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useEffect, useMemo, useRef } from "react";
+import { openDashboardMeterDetail } from "@/lib/dashboard-client";
 import type { PagePayload } from "@/lib/metrics-cache";
 import {
   buildLists,
@@ -305,6 +306,8 @@ function rowPropsEqual(
     JSON.stringify(prev.prefs.hiddenStacks) ===
       JSON.stringify(next.prefs.hiddenStacks) &&
     prev.prefs.view.query === next.prefs.view.query &&
+    prev.prefs.view.sortKey === next.prefs.view.sortKey &&
+    prev.prefs.view.sortDir === next.prefs.view.sortDir &&
     prev.prefs.view.showHidden === next.prefs.view.showHidden
   );
 }
@@ -521,6 +524,11 @@ function metersEqual(
   );
 }
 
+function openMeterFromCard(m: Record<string, unknown>) {
+  if (!m.detailKey) return;
+  openDashboardMeterDetail(String(m.detailKey), String(m.label));
+}
+
 const MeterView = memo(function MeterView({
   m,
 }: {
@@ -540,6 +548,7 @@ const MeterView = memo(function MeterView({
             data-meter-label={String(m.label)}
             title={`Expandir ${String(m.label)}`}
             aria-label={`Expandir detalhes de ${String(m.label)}`}
+            onClick={() => openMeterFromCard(m)}
           >
             <ExpandIcon />
           </button>
@@ -579,6 +588,7 @@ const MeterView = memo(function MeterView({
           data-meter-label={String(m.label)}
           title={`Expandir ${String(m.label)}`}
           aria-label={`Expandir detalhes de ${String(m.label)}`}
+          onClick={() => openMeterFromCard(m)}
         >
           <ExpandIcon />
         </button>

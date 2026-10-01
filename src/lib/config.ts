@@ -27,4 +27,5 @@ export const MODULE_BUILD =
 export const DEFAULT_SETTINGS = {
   compactView: false,
   truncateNames: false,
+  verticalMeters: false,
 } as const;

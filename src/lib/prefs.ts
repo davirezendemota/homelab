@@ -21,11 +21,25 @@ CREATE TABLE IF NOT EXISTS settings (
     key TEXT NOT NULL PRIMARY KEY,
     value TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS projects (
+    id TEXT NOT NULL PRIMARY KEY,
+    name TEXT NOT NULL,
+    position INTEGER NOT NULL,
+    access_url TEXT NOT NULL DEFAULT ''
+);
+CREATE TABLE IF NOT EXISTS project_containers (
+    project_id TEXT NOT NULL,
+    container_name TEXT NOT NULL,
+    position INTEGER NOT NULL,
+    PRIMARY KEY (project_id, container_name),
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+);
 `;
 
 export type Settings = {
   compactView: boolean;
   truncateNames: boolean;
+  verticalMeters: boolean;
 };
 
 export type Prefs = {
@@ -69,14 +83,15 @@ function readPrefs(conn: Database.Database): Prefs {
   const settings: Settings = {
     compactView: DEFAULT_SETTINGS.compactView,
     truncateNames: DEFAULT_SETTINGS.truncateNames,
+    verticalMeters: DEFAULT_SETTINGS.verticalMeters,
   };
   const rows = conn.prepare("SELECT key, value FROM settings").all() as Array<{
     key: string;
     value: string;
   }>;
   for (const row of rows) {
-    if (row.key === "compactView" || row.key === "truncateNames") {
-      settings[row.key] = row.value === "true";
+    if (row.key in DEFAULT_SETTINGS) {
+      settings[row.key as keyof Settings] = row.value === "true";
     }
   }
 

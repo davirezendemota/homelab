@@ -1,6 +1,24 @@
 // @ts-nocheck
 
 let dashboardControllerCleanup = null;
+let dashboardViewActions = null;
+let dashboardMeterActions = null;
+
+export function setDashboardQuery(query) {
+  dashboardViewActions?.setQuery(query);
+}
+
+export function toggleDashboardSort(key) {
+  dashboardViewActions?.toggleSort(key);
+}
+
+export function toggleDashboardShowHidden() {
+  dashboardViewActions?.toggleShowHidden();
+}
+
+export function openDashboardMeterDetail(kind, label) {
+  dashboardMeterActions?.openDetail(kind, label);
+}
 
 /** @param {import('./dashboard-bridge').DashboardBridge | undefined} bridge */
 export function initDashboard(DATA, bridge) {
@@ -39,7 +57,11 @@ export function initDashboard(DATA, bridge) {
     let hiddenContainers = new Set();
     let hiddenStacks = new Set();
     let collapsedStacks = new Set();
-    let settings = { compactView: false, truncateNames: false };
+    let settings = {
+      compactView: false,
+      truncateNames: false,
+      verticalMeters: false,
+    };
     let logsAbort = null;
     let logsStickBottom = true;
     let copyResetTimer = null;
@@ -78,6 +100,7 @@ export function initDashboard(DATA, bridge) {
         settings: {
           compactView: Boolean(settingsData.compactView),
           truncateNames: Boolean(settingsData.truncateNames),
+          verticalMeters: Boolean(settingsData.verticalMeters),
         },
       };
     }
@@ -97,7 +120,8 @@ export function initDashboard(DATA, bridge) {
         prefs.hiddenStacks?.length ||
         prefs.collapsedStacks?.length ||
         prefs.settings?.compactView ||
-        prefs.settings?.truncateNames
+        prefs.settings?.truncateNames ||
+        prefs.settings?.verticalMeters
       );
     }
 
@@ -109,6 +133,7 @@ export function initDashboard(DATA, bridge) {
       settings = {
         compactView: Boolean(prefs.settings?.compactView),
         truncateNames: Boolean(prefs.settings?.truncateNames),
+        verticalMeters: Boolean(prefs.settings?.verticalMeters),
       };
     }
 
@@ -255,10 +280,17 @@ export function initDashboard(DATA, bridge) {
     function applySettings() {
       document.body.classList.toggle("compact-view", settings.compactView);
       document.body.classList.toggle("truncate-names", settings.truncateNames);
+      document.body.classList.toggle("meters-vertical", settings.verticalMeters);
       const compactCheckbox = document.getElementById("settings-compact-view");
       if (compactCheckbox) compactCheckbox.checked = settings.compactView;
       const truncateCheckbox = document.getElementById("settings-truncate-names");
       if (truncateCheckbox) truncateCheckbox.checked = settings.truncateNames;
+      const verticalMetersCheckbox = document.getElementById(
+        "settings-vertical-meters",
+      );
+      if (verticalMetersCheckbox) {
+        verticalMetersCheckbox.checked = settings.verticalMeters;
+      }
     }
 
     function openSettings() {
@@ -308,6 +340,13 @@ export function initDashboard(DATA, bridge) {
       settings.truncateNames = enabled;
       saveSettings();
       applySettings();
+    }
+
+    function setVerticalMeters(enabled) {
+      settings.verticalMeters = enabled;
+      saveSettings();
+      applySettings();
+      if (bridge?.onUiBump) bridge.onUiBump();
     }
 
 
@@ -751,6 +790,12 @@ export function initDashboard(DATA, bridge) {
       if (meterDetailKind === kind) startMeterDetailRefresh(kind);
     }
 
+    dashboardMeterActions = {
+      openDetail(kind, label) {
+        openMeterDetail(kind, label);
+      },
+    };
+
     function renderMeter(m) {
       if (m.type === "storage") {
         const bars = [renderStorageBar(m.main)]
@@ -1085,10 +1130,12 @@ export function initDashboard(DATA, bridge) {
     }
 
     function render() {
-      renderSort();
-      const rows = filteredRows();
-      const lists = buildLists(rows);
-      renderHiddenToggle(lists.hiddenCount);
+      if (!reactMode) {
+        renderSort();
+        const rows = filteredRows();
+        const lists = buildLists(rows);
+        renderHiddenToggle(lists.hiddenCount);
+      }
       if (reactMode) {
         syncBridgeSnapshot();
         bridge.onUiBump?.();
@@ -1096,6 +1143,19 @@ export function initDashboard(DATA, bridge) {
         renderStacks();
       }
     }
+
+    dashboardViewActions = {
+      setQuery(query) {
+        state.query = query;
+        render();
+      },
+      toggleSort(key) {
+        toggleSort(key);
+      },
+      toggleShowHidden() {
+        toggleShowHidden();
+      },
+    };
 
     function toggleSort(key) {
       if (state.sortKey === key) {
@@ -1277,39 +1337,33 @@ export function initDashboard(DATA, bridge) {
       document.getElementById("logs-scroll").scrollTop = 0;
     }
 
-    document.getElementById("q").addEventListener("input", (e) => {
-      state.query = e.target.value;
-      render();
-    });
+    if (!reactMode) {
+      document.addEventListener("click", (e) => {
+        const expand = e.target.closest("[data-meter-detail]");
+        if (!expand || !expand.closest("#meters")) return;
+        openMeterDetail(
+          expand.dataset.meterDetail,
+          expand.dataset.meterLabel || expand.dataset.meterDetail,
+        );
+      });
+    }
 
-    document.querySelectorAll(".sort-btn").forEach((btn) => {
-      btn.addEventListener("click", () => toggleSort(btn.dataset.key));
-    });
-
-    document.getElementById("meters").addEventListener("click", (e) => {
-      const expand = e.target.closest("[data-meter-detail]");
-      if (expand) {
-        openMeterDetail(expand.dataset.meterDetail, expand.dataset.meterLabel || expand.dataset.meterDetail);
-        return;
-      }
-    });
-
-    document.getElementById("meters").addEventListener("pointerover", (e) => {
-      const row = e.target.closest(".storage-row");
+    document.addEventListener("pointerover", (e) => {
+      const row = e.target.closest("#meters .storage-row");
       if (!row) return;
       activeStorageRow = row;
       showStorageTooltip(row, e.clientX, e.clientY);
     });
 
-    document.getElementById("meters").addEventListener("pointermove", (e) => {
+    document.addEventListener("pointermove", (e) => {
       if (!activeStorageRow || storageTooltip.hidden) return;
-      const row = e.target.closest(".storage-row");
+      const row = e.target.closest("#meters .storage-row");
       if (row !== activeStorageRow) return;
       positionStorageTooltip(e.clientX, e.clientY);
     });
 
-    document.getElementById("meters").addEventListener("pointerout", (e) => {
-      const row = e.target.closest(".storage-row");
+    document.addEventListener("pointerout", (e) => {
+      const row = e.target.closest("#meters .storage-row");
       if (!row || row !== activeStorageRow) return;
       const next = e.relatedTarget;
       if (next && row.contains(next)) return;
@@ -1466,8 +1520,6 @@ export function initDashboard(DATA, bridge) {
     document.getElementById("stacks").addEventListener("click", handleStacksClick);
     document.getElementById("hidden-stacks").addEventListener("click", handleStacksClick);
 
-    document.getElementById("hidden-show-toggle").addEventListener("click", toggleShowHidden);
-
     const fullscreenToggle = document.getElementById("fullscreen-toggle");
     if (document.fullscreenEnabled && fullscreenToggle) {
       fullscreenToggle.addEventListener("click", toggleFullscreen);
@@ -1483,6 +1535,9 @@ export function initDashboard(DATA, bridge) {
     });
     document.getElementById("settings-truncate-names").addEventListener("change", (e) => {
       setTruncateNames(e.target.checked);
+    });
+    document.getElementById("settings-vertical-meters").addEventListener("change", (e) => {
+      setVerticalMeters(e.target.checked);
     });
     document.getElementById("settings-modal").addEventListener("click", (e) => {
       if (e.target.id === "settings-modal") closeSettings();
@@ -1527,6 +1582,7 @@ export function initDashboard(DATA, bridge) {
       if (reactMode) {
         syncBridgeSnapshot();
         bridge.onUiBump?.();
+        render();
       } else {
         renderMeters();
         recordUsageSamples();
@@ -1548,6 +1604,8 @@ export function initDashboard(DATA, bridge) {
         logsAbort.abort();
         logsAbort = null;
       }
+      dashboardViewActions = null;
+      dashboardMeterActions = null;
       if (dashboardControllerCleanup === wrappedCleanup) {
         dashboardControllerCleanup = null;
       }

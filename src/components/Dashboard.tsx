@@ -11,12 +11,13 @@ import {
 import {
   DashboardHeaderBlock,
   DashboardOverlaysBlock,
-  DashboardToolbarBlock,
 } from "@/components/dashboard/DashboardStaticBlocks";
+import { DashboardToolbar } from "@/components/dashboard/DashboardToolbar";
 import {
   DashboardStatusProvider,
   useDashboardStatus,
 } from "@/components/dashboard/DashboardStatusProvider";
+import { DashboardProjects } from "@/components/dashboard/DashboardProjects";
 import {
   emptyPrefsSnapshot,
   prefsSnapshotEqual,
@@ -26,20 +27,37 @@ import type { PagePayload } from "@/lib/metrics-cache";
 
 function DashboardLiveBody({ prefs }: { prefs: DashboardPrefsSnapshot }) {
   const { data, displayError } = useDashboardStatus();
+  const verticalMeters = prefs.settings.verticalMeters;
 
-  return (
+  const meters = (
+    <div className="meters" id="meters">
+      <DashboardMeters meters={data.meters} />
+    </div>
+  );
+
+  const main = (
     <>
-      <div className="meters" id="meters">
-        <DashboardMeters meters={data.meters} />
-      </div>
+      <DashboardProjects />
+      {!verticalMeters ? meters : null}
       <DashboardErrorContent error={displayError} />
-      <DashboardToolbarBlock />
+      <DashboardToolbar prefs={prefs} containers={data.containers} />
       <div id="stacks">
         <DashboardStacksContent data={data} prefs={prefs} />
       </div>
       <DashboardHiddenStacksShell data={data} prefs={prefs} />
       <DashboardEmptyShell data={data} prefs={prefs} />
     </>
+  );
+
+  if (!verticalMeters) return main;
+
+  return (
+    <div className="dashboard-layout">
+      <div className="dashboard-main">{main}</div>
+      <aside className="dashboard-meters-col" aria-label="Recursos do host">
+        {meters}
+      </aside>
+    </div>
   );
 }
 

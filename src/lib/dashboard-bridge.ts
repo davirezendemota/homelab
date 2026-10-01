@@ -20,6 +20,7 @@ export function prefsSnapshotEqual(
     a.view.showHidden === b.view.showHidden &&
     a.settings.compactView === b.settings.compactView &&
     a.settings.truncateNames === b.settings.truncateNames &&
+    a.settings.verticalMeters === b.settings.verticalMeters &&
     JSON.stringify(a.favorites) === JSON.stringify(b.favorites) &&
     JSON.stringify(a.hiddenContainers) === JSON.stringify(b.hiddenContainers) &&
     JSON.stringify(a.hiddenStacks) === JSON.stringify(b.hiddenStacks) &&
@@ -32,6 +33,10 @@ export const emptyPrefsSnapshot: DashboardPrefsSnapshot = {
   hiddenContainers: [],
   hiddenStacks: [],
   collapsedStacks: [],
-  settings: { compactView: false, truncateNames: false },
+  settings: {
+    compactView: false,
+    truncateNames: false,
+    verticalMeters: false,
+  },
   view: { query: "", sortKey: null, sortDir: 1, showHidden: false },
 };
