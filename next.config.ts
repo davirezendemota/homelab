@@ -11,7 +11,12 @@ const allowedDevOrigins = [
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  serverExternalPackages: ["better-sqlite3"],
+  serverExternalPackages: [
+    "better-sqlite3",
+    "@tailwindcss/postcss",
+    "@tailwindcss/node",
+    "lightningcss",
+  ],
   allowedDevOrigins,
 };
 
