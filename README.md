@@ -18,23 +18,21 @@ Abra `http://localhost:3000`. Ajuste `group_add` no `compose.yaml` conforme o GI
 
 ## Docker Compose
 
-Produção:
+Desenvolvimento (padrão — hot reload, código montado do host):
 
 ```sh
 docker compose up -d --build
 ```
 
-Porta publicada: **80 → 3000** (container).
+Porta publicada: **10000 → 3000** (container). Acesse `http://localhost:10000` (ou `http://homelab01:10000` na LAN).
 
-Desenvolvimento (hot reload, código montado do host):
+Se você abrir pelo hostname da LAN (`http://homelab01`, etc.), o Next em modo dev só entrega o JavaScript se esse host estiver em `allowedDevOrigins` (já incluímos `homelab` e `homelab01`; ajuste `ALLOWED_DEV_ORIGINS` no `compose.yaml` se usar outro nome).
+
+Produção (imagem buildada, sem bind mount do código), porta **80**:
 
 ```sh
-docker compose -f compose.dev.yaml up -d --build
+docker compose -f infra/compose.production.yaml up -d --build
 ```
-
-Acesse `http://localhost:3030` (ou a porta **3030** no host — a **3000** já estava ocupada).
-
-Se você abrir pelo hostname da LAN (`http://homelab01:3030`, etc.), o Next em modo dev só entrega o JavaScript se esse host estiver em `allowedDevOrigins` (já incluímos `homelab` e `homelab01`; ajuste `ALLOWED_DEV_ORIGINS` no `compose.dev.yaml` se usar outro nome).
 
 
 | Variável | Padrão | Descrição |
