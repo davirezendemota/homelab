@@ -1,4 +1,5 @@
 import type { ContainerRow } from "@/lib/docker";
+import { SHADCN } from "@/lib/shadcn-theme";
 
 export type DashboardViewState = {
   query: string;
@@ -53,7 +54,7 @@ export function uptimeSeconds(status: string): number {
 export function dotStyle(status: string) {
   const s = status.toLowerCase();
   if (!s.startsWith("up")) {
-    return { dot: "#8b94a3", glow: "rgba(139,148,163,.18)" };
+    return { dot: SHADCN.mutedForeground, glow: SHADCN.mutedForegroundGlow };
   }
   if (s.includes("second") || s.includes("minute")) {
     return { dot: "#d29922", glow: "rgba(210,153,34,.18)" };
@@ -71,13 +72,13 @@ export function healthStyle(health: string | null) {
   if (health === "unhealthy") {
     return { color: "#f85149", bg: "rgba(248,81,73,.12)" };
   }
-  return { color: "#8b94a3", bg: "rgba(139,148,163,.1)" };
+  return { color: SHADCN.mutedForeground, bg: SHADCN.mutedForegroundBg };
 }
 
 export function cpuBarColor(pct: number | null | undefined, running: boolean) {
-  if (!running || pct == null) return "#8b94a3";
-  if (pct <= 0) return "#8b94a3";
-  if (pct <= 50) return "#e6e9ef";
+  if (!running || pct == null) return SHADCN.mutedForeground;
+  if (pct <= 0) return SHADCN.mutedForeground;
+  if (pct <= 50) return SHADCN.foreground;
   if (pct <= 85) return "#e3b341";
   return "#f85149";
 }

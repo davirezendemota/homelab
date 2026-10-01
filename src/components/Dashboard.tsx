@@ -8,8 +8,8 @@ import {
   DashboardMeters,
   DashboardStacksContent,
 } from "@/components/dashboard/DashboardLive";
+import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import {
-  DashboardHeaderBlock,
   DashboardOverlaysBlock,
 } from "@/components/dashboard/DashboardStaticBlocks";
 import { DashboardToolbar } from "@/components/dashboard/DashboardToolbar";
@@ -18,6 +18,7 @@ import {
   useDashboardStatus,
 } from "@/components/dashboard/DashboardStatusProvider";
 import { DashboardProjects } from "@/components/dashboard/DashboardProjects";
+import { MetersLayoutToggle } from "@/components/dashboard/MetersLayoutToggle";
 import {
   emptyPrefsSnapshot,
   prefsSnapshotEqual,
@@ -29,34 +30,65 @@ function DashboardLiveBody({ prefs }: { prefs: DashboardPrefsSnapshot }) {
   const { data, displayError } = useDashboardStatus();
   const verticalMeters = prefs.settings.verticalMeters;
 
-  const meters = (
-    <div className="meters" id="meters">
-      <DashboardMeters meters={data.meters} />
-    </div>
+  const projectsPanel = (
+    <section
+      className="dashboard-panel dashboard-panel--projects"
+      aria-label="Projetos"
+    >
+      <DashboardProjects />
+    </section>
   );
 
-  const main = (
-    <>
-      <DashboardProjects />
-      {!verticalMeters ? meters : null}
+  const metersPanel = (
+    <section
+      className="dashboard-panel dashboard-panel--meters"
+      aria-label="Monitor de recursos"
+    >
+      <div className="dashboard-panel-head dashboard-panel-head--meters">
+        <span className="dashboard-panel-eyebrow">Monitor de recursos</span>
+        <MetersLayoutToggle verticalMeters={verticalMeters} />
+      </div>
+      <div className="meters" id="meters">
+        <DashboardMeters meters={data.meters} />
+      </div>
+    </section>
+  );
+
+  const containersPanel = (
+    <section
+      className="dashboard-panel dashboard-panel--containers"
+      aria-label="Containers"
+    >
+      <div className="dashboard-panel-head dashboard-panel-head--containers">
+        <span className="dashboard-panel-eyebrow">Containers</span>
+        <DashboardToolbar prefs={prefs} containers={data.containers} />
+      </div>
       <DashboardErrorContent error={displayError} />
-      <DashboardToolbar prefs={prefs} containers={data.containers} />
       <div id="stacks">
         <DashboardStacksContent data={data} prefs={prefs} />
       </div>
       <DashboardHiddenStacksShell data={data} prefs={prefs} />
       <DashboardEmptyShell data={data} prefs={prefs} />
-    </>
+    </section>
   );
 
-  if (!verticalMeters) return main;
+  if (!verticalMeters) {
+    return (
+      <>
+        {projectsPanel}
+        {metersPanel}
+        {containersPanel}
+      </>
+    );
+  }
 
   return (
     <div className="dashboard-layout">
-      <div className="dashboard-main">{main}</div>
-      <aside className="dashboard-meters-col" aria-label="Recursos do host">
-        {meters}
-      </aside>
+      <div className="dashboard-main">
+        {projectsPanel}
+        {containersPanel}
+      </div>
+      <aside className="dashboard-meters-col">{metersPanel}</aside>
     </div>
   );
 }
@@ -70,9 +102,9 @@ export function Dashboard({ initialData }: { initialData: PagePayload }) {
 
   return (
     <>
-      <div className="page">
+      <div className="page bg-background">
         <div className="wrap">
-          <DashboardHeaderBlock />
+          <DashboardHeader prefs={prefs} />
           <DashboardStatusProvider
             initialData={initialData}
             onPrefsChange={onPrefsChange}

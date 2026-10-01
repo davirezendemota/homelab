@@ -2,6 +2,7 @@ import os from "os";
 import fs from "fs";
 import path from "path";
 import { HOST_ROOT } from "./config";
+import { SHADCN } from "@/lib/shadcn-theme";
 
 export const MAIN_DISK_COLOR = "#3fb950";
 export const MOUNT_COLORS = [
@@ -469,7 +470,7 @@ export async function buildMeters(): Promise<Record<string, unknown>[]> {
       display: "—",
       sub: "indisponível",
       showSub: true,
-      color: "#8b94a3",
+      color: SHADCN.mutedForeground,
       barWidth: "0%",
       showBar: false,
       showCaption: false,

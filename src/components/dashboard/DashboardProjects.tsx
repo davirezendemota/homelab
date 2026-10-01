@@ -4,12 +4,39 @@ import {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type FormEvent,
 } from "react";
 import { useDashboardStatus } from "@/components/dashboard/DashboardStatusProvider";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { dotStyle } from "@/lib/dashboard-view-model";
+import { MoreHorizontal, Plus, Search } from "lucide-react";
 import {
   environmentLabel,
   PROJECT_ENVIRONMENTS,
@@ -169,53 +196,32 @@ function ProjectEditorModal({
   };
 
   return (
-    <div
-      className="modal-backdrop"
-      role="presentation"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div
-        className="modal modal-md project-editor-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="project-editor-title"
-      >
-        <div className="modal-head">
-          <div className="modal-title-wrap">
-            <span className="modal-label">Projeto</span>
-            <span className="modal-title" id="project-editor-title">
-              {editor.mode === "create" ? "Novo projeto" : "Editar projeto"}
-            </span>
-          </div>
-          <button
-            type="button"
-            className="modal-close"
-            onClick={onClose}
-            aria-label="Fechar"
-          >
-            ×
-          </button>
-        </div>
-        <form className="project-editor-form" onSubmit={onSubmit}>
-          <div className="modal-body project-editor-body">
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="flex max-h-[min(82vh,760px)] w-full max-w-3xl flex-col gap-0 overflow-hidden p-0 sm:max-w-3xl">
+        <DialogHeader className="border-b px-6 py-4">
+          <DialogTitle>
+            {editor.mode === "create" ? "Novo projeto" : "Editar projeto"}
+          </DialogTitle>
+          <DialogDescription>Projeto</DialogDescription>
+        </DialogHeader>
+        <form className="project-editor-form flex min-h-0 flex-1 flex-col" onSubmit={onSubmit}>
+          <div className="modal-body project-editor-body overflow-y-auto">
             {error ? <div className="project-editor-error">{error}</div> : null}
-            <label className="project-field">
-              <span className="project-field-label">Nome</span>
-              <input
-                className="search-input project-name-input"
+            <div className="project-field">
+              <Label htmlFor="project-name">Nome</Label>
+              <Input
+                id="project-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Ex.: Produção, Lab, Mídia…"
                 required
                 autoFocus
               />
-            </label>
-            <label className="project-field">
-              <span className="project-field-label">Link de acesso</span>
-              <input
-                className="search-input project-name-input"
+            </div>
+            <div className="project-field">
+              <Label htmlFor="project-access-url">Link de acesso</Label>
+              <Input
+                id="project-access-url"
                 value={accessUrl}
                 onChange={(e) => setAccessUrl(e.target.value)}
                 placeholder="https://…"
@@ -223,31 +229,36 @@ function ProjectEditorModal({
                 inputMode="url"
                 autoComplete="url"
               />
-            </label>
-            <label className="project-field">
-              <span className="project-field-label">Ambiente</span>
-              <select
-                className="search-input project-env-select"
+            </div>
+            <div className="project-field">
+              <Label htmlFor="project-environment">Ambiente</Label>
+              <Select
                 value={environment}
-                onChange={(e) =>
-                  setEnvironment(e.target.value as ProjectEnvironment)
+                onValueChange={(value) =>
+                  setEnvironment(value as ProjectEnvironment)
                 }
               >
-                {PROJECT_ENVIRONMENTS.map((env) => (
-                  <option key={env} value={env}>
-                    {environmentLabel(env)}
-                  </option>
-                ))}
-              </select>
-            </label>
+                <SelectTrigger id="project-environment" className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PROJECT_ENVIRONMENTS.map((env) => (
+                    <SelectItem key={env} value={env}>
+                      {environmentLabel(env)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <div className="project-field project-field-containers">
-              <span className="project-field-label">Containers</span>
-              <div className="search-wrap project-picker-search">
-                <span className="search-icon" aria-hidden="true">
-                  ⌕
-                </span>
-                <input
-                  className="search-input"
+              <Label>Containers</Label>
+              <div className="search-wrap project-picker-search relative">
+                <Search
+                  className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+                  aria-hidden="true"
+                />
+                <Input
+                  className="pl-9"
                   value={filter}
                   onChange={(e) => setFilter(e.target.value)}
                   placeholder="Filtrar containers…"
@@ -261,12 +272,11 @@ function ProjectEditorModal({
                   filteredNames.map((containerName) => (
                     <label
                       key={containerName}
-                      className="settings-option project-picker-item"
+                      className="settings-option project-picker-item flex cursor-pointer"
                     >
-                      <input
-                        type="checkbox"
+                      <Checkbox
                         checked={selected.has(containerName)}
-                        onChange={() => toggle(containerName)}
+                        onCheckedChange={() => toggle(containerName)}
                       />
                       <span className="settings-option-text">
                         <span className="settings-option-label">
@@ -279,26 +289,24 @@ function ProjectEditorModal({
               </div>
             </div>
           </div>
-          <div className="project-editor-actions">
-            <button
+          <DialogFooter
+            className="project-editor-footer shrink-0 !m-0 gap-3 bg-card sm:flex-row"
+          >
+            <Button
               type="button"
-              className="sort-btn"
+              variant="outline"
               onClick={onClose}
               disabled={saving}
             >
               Cancelar
-            </button>
-            <button
-              type="submit"
-              className="sort-btn active project-save-btn"
-              disabled={saving || !name.trim()}
-            >
+            </Button>
+            <Button type="submit" disabled={saving || !name.trim()}>
               {saving ? "Salvando…" : "Salvar"}
-            </button>
-          </div>
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -335,67 +343,46 @@ function ProjectCardMenu({
   onDelete: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const onDocumentPointer = (e: MouseEvent) => {
-      if (rootRef.current?.contains(e.target as Node)) return;
-      setOpen(false);
-    };
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("mousedown", onDocumentPointer);
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("mousedown", onDocumentPointer);
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [open]);
 
   return (
-    <div className="project-card-menu" ref={rootRef}>
-      <button
-        type="button"
-        className="project-card-btn project-card-menu-trigger"
+    <DropdownMenu open={open} onOpenChange={setOpen}>
+      <DropdownMenuTrigger
+        className="project-card-menu-trigger"
         draggable={false}
-        onClick={() => setOpen((prev) => !prev)}
-        aria-expanded={open}
-        aria-haspopup="menu"
         aria-label={`Menu do projeto ${projectName}`}
+        render={
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className="project-card-btn"
+            draggable={false}
+          />
+        }
       >
-        <MenuIcon />
-      </button>
-      {open ? (
-        <div className="project-card-menu-dropdown" role="menu">
-          <button
-            type="button"
-            className="project-card-menu-item"
-            role="menuitem"
-            draggable={false}
-            onClick={() => {
-              setOpen(false);
-              onEdit();
-            }}
-          >
-            Editar
-          </button>
-          <button
-            type="button"
-            className="project-card-menu-item project-card-menu-item-danger"
-            role="menuitem"
-            draggable={false}
-            onClick={() => {
-              setOpen(false);
-              onDelete();
-            }}
-          >
-            Excluir
-          </button>
-        </div>
-      ) : null}
-    </div>
+        <MoreHorizontal className="size-4" />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem
+          draggable={false}
+          onClick={() => {
+            setOpen(false);
+            onEdit();
+          }}
+        >
+          Editar
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          variant="destructive"
+          draggable={false}
+          onClick={() => {
+            setOpen(false);
+            onDelete();
+          }}
+        >
+          Excluir
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -433,8 +420,8 @@ function ProjectCard({
   const link = project.accessUrl.trim();
 
   return (
-    <article
-      className={`project-card${isDragging ? " is-dragging" : ""}${isDragOver ? " is-drag-over" : ""}`}
+    <Card
+      className={`project-card max-w-[280px] min-w-0 w-full gap-0 border border-border py-0 shadow-none ring-0${isDragging ? " is-dragging" : ""}${isDragOver ? " is-drag-over" : ""}`}
       draggable
       title="Arrastar para reordenar"
       onDragStart={(e) => {
@@ -461,14 +448,15 @@ function ProjectCard({
         onDragLeaveCard(project.id);
       }}
     >
-      <header className="project-card-head">
+      <CardHeader className="project-card-head flex-row items-center gap-2 space-y-0 border-b px-4 py-3">
         <div className="project-card-title-block">
-          <span
+          <Badge
+            variant="outline"
             className={`project-env-badge project-env-badge--${project.environment}`}
             title={`Ambiente: ${environmentLabel(project.environment)}`}
           >
             {environmentLabel(project.environment)}
-          </span>
+          </Badge>
           <h2 className="project-card-title">
             {link ? (
               <a
@@ -491,8 +479,8 @@ function ProjectCard({
           onEdit={onEdit}
           onDelete={onDelete}
         />
-      </header>
-      <div className="project-card-body">
+      </CardHeader>
+      <CardContent className="project-card-body p-0">
         {project.containers.length === 0 ? (
           <p className="project-card-empty">Nenhum container.</p>
         ) : (
@@ -513,8 +501,8 @@ function ProjectCard({
             </div>
           ))
         )}
-      </div>
-    </article>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -614,13 +602,14 @@ export function DashboardProjects() {
             Agrupe containers por contexto — arraste o card para reordenar.
           </p>
         </div>
-        <button
+        <Button
           type="button"
-          className="sort-btn active project-new-btn"
+          className="project-new-btn"
           onClick={() => setEditor({ mode: "create" })}
         >
+          <Plus className="size-4" />
           Novo projeto
-        </button>
+        </Button>
       </div>
       {loadError ? (
         <div className="project-section-error">{loadError}</div>
@@ -671,19 +660,3 @@ export function DashboardProjects() {
   );
 }
 
-function MenuIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      aria-hidden="true"
-    >
-      <line x1="5" y1="7" x2="19" y2="7" />
-      <line x1="5" y1="12" x2="19" y2="12" />
-      <line x1="5" y1="17" x2="19" y2="17" />
-    </svg>
-  );
-}

@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useEffect, useMemo, useRef } from "react";
+import { SHADCN } from "@/lib/shadcn-theme";
 import { openDashboardMeterDetail } from "@/lib/dashboard-client";
 import type { PagePayload } from "@/lib/metrics-cache";
 import {
@@ -75,7 +76,7 @@ function MeterChart({
     const y50 = yAt(50).toFixed(1);
 
     svg.innerHTML = `
-      <line x1="0" y1="${y50}" x2="${W}" y2="${y50}" stroke="#1e2530" stroke-width="1"/>
+      <line x1="0" y1="${y50}" x2="${W}" y2="${y50}" stroke="${SHADCN.border}" stroke-width="1"/>
       <polygon points="${areaPts}" fill="${color}" fill-opacity="0.14"/>
       <polyline points="${linePts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
     `;

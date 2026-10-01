@@ -1,5 +1,6 @@
 // @ts-nocheck
 
+import { SHADCN } from "./shadcn-theme";
 let dashboardControllerCleanup = null;
 let dashboardViewActions = null;
 let dashboardMeterActions = null;
@@ -14,6 +15,28 @@ export function toggleDashboardSort(key) {
 
 export function toggleDashboardShowHidden() {
   dashboardViewActions?.toggleShowHidden();
+}
+
+let setVerticalMetersFn = null;
+let setCompactViewFn = null;
+let setTruncateNamesFn = null;
+
+export function setDashboardVerticalMeters(enabled) {
+  setVerticalMetersFn?.(enabled);
+}
+
+export function setDashboardCompactView(enabled) {
+  setCompactViewFn?.(enabled);
+}
+
+export function setDashboardTruncateNames(enabled) {
+  setTruncateNamesFn?.(enabled);
+}
+
+export function toggleDashboardMetersLayout() {
+  if (!setVerticalMetersFn) return;
+  const next = !document.body.classList.contains("meters-vertical");
+  setVerticalMetersFn(next);
 }
 
 export function openDashboardMeterDetail(kind, label) {
@@ -281,27 +304,17 @@ export function initDashboard(DATA, bridge) {
       document.body.classList.toggle("compact-view", settings.compactView);
       document.body.classList.toggle("truncate-names", settings.truncateNames);
       document.body.classList.toggle("meters-vertical", settings.verticalMeters);
-      const compactCheckbox = document.getElementById("settings-compact-view");
-      if (compactCheckbox) compactCheckbox.checked = settings.compactView;
-      const truncateCheckbox = document.getElementById("settings-truncate-names");
-      if (truncateCheckbox) truncateCheckbox.checked = settings.truncateNames;
-      const verticalMetersCheckbox = document.getElementById(
-        "settings-vertical-meters",
+    }
+
+    function overlayModalsClosed() {
+      return (
+        document.getElementById("logs-modal")?.hidden !== false &&
+        document.getElementById("meter-modal")?.hidden !== false
       );
-      if (verticalMetersCheckbox) {
-        verticalMetersCheckbox.checked = settings.verticalMeters;
-      }
     }
 
-    function openSettings() {
-      applySettings();
-      document.getElementById("settings-modal").hidden = false;
-      document.body.style.overflow = "hidden";
-    }
-
-    function closeSettings() {
-      document.getElementById("settings-modal").hidden = true;
-      if (document.getElementById("logs-modal").hidden && document.getElementById("meter-modal").hidden) {
+    function releaseBodyScrollIfNoOverlay() {
+      if (overlayModalsClosed()) {
         document.body.style.overflow = "";
       }
     }
@@ -334,12 +347,14 @@ export function initDashboard(DATA, bridge) {
       settings.compactView = enabled;
       saveSettings();
       applySettings();
+      if (bridge?.onUiBump) bridge.onUiBump();
     }
 
     function setTruncateNames(enabled) {
       settings.truncateNames = enabled;
       saveSettings();
       applySettings();
+      if (bridge?.onUiBump) bridge.onUiBump();
     }
 
     function setVerticalMeters(enabled) {
@@ -348,6 +363,10 @@ export function initDashboard(DATA, bridge) {
       applySettings();
       if (bridge?.onUiBump) bridge.onUiBump();
     }
+
+    setVerticalMetersFn = setVerticalMeters;
+    setCompactViewFn = setCompactView;
+    setTruncateNamesFn = setTruncateNames;
 
 
     const COPY_ICON = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
@@ -374,7 +393,7 @@ export function initDashboard(DATA, bridge) {
       const s = status.toLowerCase();
       if (!s.startsWith("up")) {
         return {
-          dot: "#8b94a3", glow: "rgba(139,148,163,.18)",
+          dot: SHADCN.mutedForeground, glow: SHADCN.mutedForegroundGlow,
         };
       }
       if (s.includes("second") || s.includes("minute")) {
@@ -397,13 +416,13 @@ export function initDashboard(DATA, bridge) {
       if (health === "unhealthy") {
         return { color: "#f85149", bg: "rgba(248,81,73,.12)" };
       }
-      return { color: "#8b94a3", bg: "rgba(139,148,163,.1)" };
+      return { color: SHADCN.mutedForeground, bg: SHADCN.mutedForegroundBg };
     }
 
     function cpuBarColor(pct, running) {
-      if (!running || pct == null) return "#8b94a3";
-      if (pct <= 0) return "#8b94a3";
-      if (pct <= 50) return "#e6e9ef";
+      if (!running || pct == null) return SHADCN.mutedForeground;
+      if (pct <= 0) return SHADCN.mutedForeground;
+      if (pct <= 50) return SHADCN.foreground;
       if (pct <= 85) return "#e3b341";
       return "#f85149";
     }
@@ -751,9 +770,7 @@ export function initDashboard(DATA, bridge) {
         meterDetailAbort = null;
       }
       document.getElementById("meter-modal").hidden = true;
-      if (document.getElementById("settings-modal").hidden && document.getElementById("logs-modal").hidden) {
-        document.body.style.overflow = "";
-      }
+      releaseBodyScrollIfNoOverlay();
     }
 
     function getMeterDetailNav() {
@@ -893,7 +910,7 @@ export function initDashboard(DATA, bridge) {
       const y50 = yAt(50).toFixed(1);
 
       svg.innerHTML = `
-        <line x1="0" y1="${y50}" x2="${W}" y2="${y50}" stroke="#1e2530" stroke-width="1"/>
+        <line x1="0" y1="${y50}" x2="${W}" y2="${y50}" stroke="${SHADCN.border}" stroke-width="1"/>
         <polygon points="${areaPts}" fill="${esc(color)}" fill-opacity="0.14"/>
         <polyline points="${linePts}" fill="none" stroke="${esc(color)}" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
       `;
@@ -1224,9 +1241,7 @@ export function initDashboard(DATA, bridge) {
       document.getElementById("logs-progress").hidden = true;
       document.getElementById("logs-progress-bar").style.width = "0%";
       document.getElementById("logs-modal").hidden = true;
-      if (document.getElementById("settings-modal").hidden && document.getElementById("meter-modal").hidden) {
-        document.body.style.overflow = "";
-      }
+      releaseBodyScrollIfNoOverlay();
     }
 
     function appendLogs(text) {
@@ -1528,21 +1543,6 @@ export function initDashboard(DATA, bridge) {
       fullscreenToggle.hidden = true;
     }
 
-    document.getElementById("settings-open").addEventListener("click", openSettings);
-    document.getElementById("settings-close").addEventListener("click", closeSettings);
-    document.getElementById("settings-compact-view").addEventListener("change", (e) => {
-      setCompactView(e.target.checked);
-    });
-    document.getElementById("settings-truncate-names").addEventListener("change", (e) => {
-      setTruncateNames(e.target.checked);
-    });
-    document.getElementById("settings-vertical-meters").addEventListener("change", (e) => {
-      setVerticalMeters(e.target.checked);
-    });
-    document.getElementById("settings-modal").addEventListener("click", (e) => {
-      if (e.target.id === "settings-modal") closeSettings();
-    });
-
     document.getElementById("meter-close").addEventListener("click", closeMeterDetail);
     document.getElementById("meter-prev").addEventListener("click", () => navigateMeterDetail(-1));
     document.getElementById("meter-next").addEventListener("click", () => navigateMeterDetail(1));
@@ -1559,8 +1559,7 @@ export function initDashboard(DATA, bridge) {
     document.getElementById("logs-scroll").addEventListener("scroll", updateScrollProgress);
     document.addEventListener("keydown", (e) => {
       if (e.key !== "Escape") return;
-      if (!document.getElementById("settings-modal").hidden) closeSettings();
-      else if (!document.getElementById("meter-modal").hidden) closeMeterDetail();
+      if (!document.getElementById("meter-modal").hidden) closeMeterDetail();
       else if (!document.getElementById("logs-modal").hidden) closeLogs();
     });
 
@@ -1606,6 +1605,9 @@ export function initDashboard(DATA, bridge) {
       }
       dashboardViewActions = null;
       dashboardMeterActions = null;
+      setVerticalMetersFn = null;
+      setCompactViewFn = null;
+      setTruncateNamesFn = null;
       if (dashboardControllerCleanup === wrappedCleanup) {
         dashboardControllerCleanup = null;
       }
