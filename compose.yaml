@@ -5,7 +5,7 @@ services:
     image: homelab-app-dev
     build:
       context: .
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
     container_name: homelab-app-dev
     ports:
       - "10000:3000"

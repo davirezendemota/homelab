@@ -5,7 +5,7 @@ services:
     image: homelab-app
     build:
       context: ..
-      dockerfile: Dockerfile
+      dockerfile: infra/Dockerfile.production
     container_name: homelab-app
     restart: unless-stopped
     ports:
